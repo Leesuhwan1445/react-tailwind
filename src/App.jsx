@@ -1,18 +1,26 @@
-import { useRef, useState } from 'react';
+import {  useRef, useState } from 'react';
 import './App.css'
 import Onetime from './Onetime';
 import Qr from './Qr';
 import { supabase } from './supabaseClient';
+import { Route, Routes, useNavigate} from 'react-router-dom';
+import Todo from './Todo';
+import PrivateRoute from './PrivateRoute';
+import { useVerify } from './hooks/useVerify';
 
 
 function App() {
-
   const [tap, setTap] = useState(0);
-
   const pwRef = useRef(null);
   const idRef = useRef(null);
   const [ setlogined ] = useState(false);
   const [ setUserData ] = useState([]);
+  const navigate = useNavigate();
+
+  useVerify({
+    onSuccess: () => navigate("/todo"),
+    onFailure: () => {},
+  });
 
   const handleLogin = async() => {
     const { data, error } = await supabase
@@ -25,7 +33,6 @@ function App() {
     if(error || data?.length === 0) {
       return alert("이메일 또는 비밀번호가 올바르지 않습니다.")
     }
-
 
     alert("로그인 되었습니다.")
     setlogined(true);
@@ -52,8 +59,23 @@ function App() {
     alert(`비밀번호는 ${maskedPassword} 입니다`)
   }
 
+  const handleKaKaoLogin = async () => {
+    const {data,error} = await supabase.auth.signInWithOAuth({
+      provider:"kakao",
+      skipBrowserRedirect: true
+    })
+  
+    if (error) {
+      console.log(error)
+    } 
+    console.log(data);
+
+  }
+
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-white">
+   <Routes>
+    <Route path='/' element={ <div className="flex justify-center items-center min-h-screen bg-white">
       <div className="w-[400px] border border-gray-200 flex flex-col p-4">
         <div className="text-green-600 text-3xl font-bold text-center mb-4">NAVER</div>
 
@@ -94,8 +116,9 @@ function App() {
               <button 
               onClick = {handleLogin}
               className="w-full bg-gray-600 text-white py-2 rounded">로그인</button>
-              <div className="text-center text-xs text-gray-500 mt-2">------------지문 , 얼굴 인증을 설정했다면------------</div>
+              <div className="text-center text-xs text-gray-500 mt-3 mb-3">------------지문 , 얼굴 인증을 설정했다면------------</div>
               <button className="w-full border-2 border-green-600 text-green-600 py-2 rounded-md">패스키 로그인</button>
+              <button onClick = {handleKaKaoLogin} className='w-full border-2 border-yellow-400 text-white-600 py-2 rounded-md bg-yellow-300 mt-3'>카카오 로그인</button>
             </div>
               </div>
             ) : ( tap === 1 ? (<div><Onetime></Onetime></div> ) : (<Qr></Qr>))}
@@ -111,7 +134,12 @@ function App() {
 
       </div>
     </div>
-    
+}/>
+
+<Route path='todo' element={<PrivateRoute><Todo/></PrivateRoute>}></Route> 
+
+
+</Routes>    
 
   );
 
